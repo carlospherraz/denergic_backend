@@ -11,6 +11,7 @@ var morgan = require('morgan');
 var routes = require('./routes/routes');
 var path = require('path');
 var cors = require('cors');
+var persistentDBLoader = require('./loaders/persistentDb');
 
 //Utils
 var async = require('async');
@@ -38,7 +39,18 @@ function start() {
   app.use(methodOverride());
   app.use(morgan('dev', {'stream': logger.stream}));
   routes.register(app);
-  app.listen(config.app.port, config.app.host);
+  app.listen(config.app.port, config.app.host, function () {
+    async.series([persistentDBLoader.loader],
+        function (err) {
+          if (err) {
+            logger.error(util.format('Something went wrong during boot time (%s)', err));
+            process.exit(1);
+          } else {
+            logger.info('Server started at ports [ HTTP:' + config.app.port + ', HTTPS:' + config.app.ports + ' ]');
+            started = true;
+          }
+        });
+  });
   process.on('uncaughtException', function (err) {
     logger.error('Uncaught Exception' + err.stack, err);
   });

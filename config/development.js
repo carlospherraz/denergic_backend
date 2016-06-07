@@ -32,8 +32,9 @@ module.exports = {
     }
   },
   databases: {
-    mongodb: {
-      host: '127.0.0.1',
+    persistentDb: {
+      type: 'persistentDb',
+      host: '192.168.1.140',
       port: 27017,
       database: 'denergic',
       user: '',
