@@ -4,7 +4,7 @@ var path = require('path');
 module.exports = {
   app: {
     api: '/api/1.0',
-    host: '127.0.0.1',
+    host: '0.0.0.0',
     port: 3000
   },
   token: {
@@ -40,5 +40,5 @@ module.exports = {
       user: '',
       password: ''
     }
-  },
+  }
 };
