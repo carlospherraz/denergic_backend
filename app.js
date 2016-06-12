@@ -43,7 +43,7 @@ function start() {
     async.series([persistentDBLoader.loader],
         function (err) {
           if (err) {
-            logger.error(util.format('Something went wrong during boot time (%s)', err));
+            logger.error('Something went wrong during boot time');
             process.exit(1);
           } else {
             logger.info('Server started at ports [ HTTP:' + config.app.port + ', HTTPS:' + config.app.ports + ' ]');
