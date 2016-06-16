@@ -34,7 +34,7 @@ module.exports = {
   databases: {
     persistentDb: {
       type: 'persistentDb',
-      host: '192.168.1.140',
+      host: '192.168.1.135',
       port: 27017,
       database: 'denergic',
       user: '',

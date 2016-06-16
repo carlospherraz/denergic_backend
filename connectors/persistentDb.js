@@ -78,11 +78,17 @@ MongoConnector.prototype = {
       }
     });
   },*/
-  insertOne: function (collectionName, data, callback) {
+  insert: function (collectionName, data, callback) {
     var collection = this.client.collection(collectionName);
-    collection.insertOne(data, function (err, result) {
-      callback(err, result.ops);
-    });
+    if (data.length) {
+      collection.insertMany(data, function (err, result) {
+        callback(err, result.ops);
+      });
+    } else {
+      collection.insertOne(data, function (err, result) {
+        callback(err, result.ops);
+      });
+    }
   },
   updateOne: function (collectionName, query, data, options, callback) {
     if (callback === undefined) {
