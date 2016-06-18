@@ -1,4 +1,5 @@
 'use strict';
+var _ = require('lodash');
 var async = require('async');
 var Mongo = require('mongodb');
 var connectionsPool = require('./connectionsPool');
@@ -9,9 +10,29 @@ function MongoConnector(dbConfig) {
 }
 
 MongoConnector.prototype = {
+  _getFields: function (fields) {
+    let result = {};
+    if (fields) {
+      fields.split(',').forEach(field => result[field] = 1);
+    }
+    return result;
+  },
+  _cleanUpdateData: function (data) {
+    delete data._id;
+    return _.omitBy(data, _.isNil);
+  },
+  _getSortAndOrderField: function (data) {
+    if (data.hasOwnProperty('sort') && data.hasOwnProperty('order')) {
+      var result = {};
+      result[data.sort] = data.order === 'asc'? 1 : -1;
+      return result
+    } else {
+      return {}
+    }
+  },
   init: function (callback) {
-    var that = this;
-    var url = 'mongodb://' + ((this.config.user) ? this.config.user + ':' + this.config.password : '') + '@' + this.config.host + ':' + this.config.port + '/' + this.config.database;
+    let that = this;
+    let url = 'mongodb://' + ((this.config.user) ? this.config.user + ':' + this.config.password : '') + '@' + this.config.host + ':' + this.config.port + '/' + this.config.database;
     Mongo.connect(url, function (err, db) {
       if (err) {
         callback(err)
@@ -27,17 +48,36 @@ MongoConnector.prototype = {
       });
     });
   },
-  find: function (collectionName, data, options, callback) {
-    if (callback === undefined) {
-      callback = options;
-      options = {};
-    }
-    var collection = this.client.collection(collectionName);
-    collection.find(data, options, function (err, result) {
+  find: function (params, callback) {
+    let collection = this.client.collection(params.collectionName);
+    global.logger.debug(JSON.stringify(this._getSortAndOrderField(params)));
+    collection
+        .find(params.select)
+        .project(this._getFields(params.fields))
+        .sort(this._getSortAndOrderField(params))
+        .toArray(function (err, result) {
       callback(err, result);
     });
   },
-  /*paginate: function (collectionName, select, fields, pageNumber, pageSize, orderField, orderAsc, callback) {
+  insert: function (params, callback) {
+    let collection = this.client.collection(params.collectionName);
+    if (params.data.length) {
+      collection.insertMany(params.data, function (err, result) {
+        callback(err, result.ops);
+      });
+    } else {
+      collection.insertOne(params.data, function (err, result) {
+        callback(err, result.ops && result.ops.length? result.ops[0] : null);
+      });
+    }
+  },
+  update: function (params, callback) {
+    let collection = this.client.collection(params.collectionName);
+    collection.updateOne(params.select, {$set: this._cleanUpdateData(params.data)}, params.options, function (err, updated) {
+      callback(err, updated? updated.result.n : null);
+    });
+  },
+  paginatedFind: function (collectionName, select, fields, pageNumber, pageSize, orderField, orderAsc, callback) {
     var that = this;
     var from = pageNumber * pageSize;
     var until = from + pageSize;
@@ -53,20 +93,12 @@ MongoConnector.prototype = {
     async.parallel([
       function (callback) {
         collection.aggregate(pipeline, function (err, result) {
-          if (err) {
-            callback(err)
-          } else {
-            callback(null, result);
-          }
+          callback(err, result)
         });
       },
       function (callback) {
-        that.count(collectionName, select, function (err, count) {
-          if (err) {
-            callback(err)
-          } else {
-            callback(null, count);
-          }
+        that.countRecords(collectionName, select, function (err, count) {
+          callback(err, count)
         })
       }
     ], function (err, results) {
@@ -77,31 +109,9 @@ MongoConnector.prototype = {
         callback(err, response);
       }
     });
-  },*/
-  insert: function (collectionName, data, callback) {
-    var collection = this.client.collection(collectionName);
-    if (data.length) {
-      collection.insertMany(data, function (err, result) {
-        callback(err, result.ops);
-      });
-    } else {
-      collection.insertOne(data, function (err, result) {
-        callback(err, result.ops);
-      });
-    }
-  },
-  updateOne: function (collectionName, query, data, options, callback) {
-    if (callback === undefined) {
-      callback = options;
-      options = {};
-    }
-    var collection = this.client.collection(collectionName);
-    collection.updateOne(query, data, options, function (err, result) {
-      callback(err, result.result.n);
-    });
   },
   deleteOne: function (collectionName, query, callback) {
-    var collection = this.client.collection(collectionName);
+    let collection = this.client.collection(collectionName);
     collection.deleteOne(query, function (err, result) {
       callback(err, result.result.n);
     });
@@ -111,10 +121,16 @@ MongoConnector.prototype = {
       callback = options;
       options = {};
     }
-    var collection = this.client.collection(collectionName);
+    let collection = this.client.collection(collectionName);
     collection.aggregate(pipeline, options, function (err, result) {
       callback(err, result);
     });
+  },
+  countRecords: function (collectionName, data, callback) {
+    let collection = this.client.collection(collectionName);
+    collection.find(data).count(function(err, count) {
+      callback(err, count)
+    })
   }
 };
 module.exports = MongoConnector;

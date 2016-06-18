@@ -8,7 +8,7 @@ var schema = {
   definitions: {
     project: proyectSchema
   },
-  required: ['name', 'state', 'phase', 'estimatedSavingsPotential', 'totalSavingsAchieved', 'startDate', 'endDate', 'modality']
+  required: ['_id']
 };
 
 module.exports = schema;

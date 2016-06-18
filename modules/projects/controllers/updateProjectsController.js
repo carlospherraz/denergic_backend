@@ -1,11 +1,12 @@
 'use strict';
 var BaseController = require('../../commons/baseController');
 var errorHandler = require('../../commons/errorHandler');
-var schema = require('../schemas/createProjectSchema');
-var createProjectService = require('../services/createProjectService');
+var schema = require('../schemas/updateProjectSchema');
+var createProjectService = require('../services/updateProjectByIdService');
 
-function getData(body) {
+function getData(params, body) {
   return {
+    _id: params.projectId,
     name: body.name,
     state: body.state,
     phase: body.phase,
@@ -18,7 +19,7 @@ function getData(body) {
 }
 
 function controller(req, res) {
-  var data = getData(req.body);
+  var data = getData(req.params, req.body);
   global.logger.debug(JSON.stringify(data));
   var controller = new BaseController({
     data: data,
@@ -34,7 +35,7 @@ function controller(req, res) {
       let error = errorHandler(err);
       res.status(error.statusCode).send(error.message)
     } else {
-      res.status(201).send({project: {_id: result}})
+      res.sendStatus(202)
     }
   }
 }

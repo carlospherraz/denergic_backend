@@ -13,17 +13,21 @@ BaseController.prototype = {
 function setParams(params) {
   this.data = params.data;
   this.schema = params.schema;
-  this.service = params.service;
+  this.services = params.services;
 }
 
 function execute(callback) {
-  var validator = new SchemaValidator(this.data, this.schema);
-  if (validator.isValid()) {
-    this.service(this.data, callback);
+  if (this.schema) {
+    var validator = new SchemaValidator(this.data, this.schema);
+    if (validator.isValid()) {
+      this.services(this.data, callback);
+    } else {
+      var errors = validator.getErrors();
+      global.logger.error(JSON.stringify(errors))
+      callback(errors);
+    }
   } else {
-    var errors = validator.getErrors();
-    global.logger.error(JSON.stringify(errors))
-    callback(errors);
+    this.services(this.data, callback);
   }
 }
 

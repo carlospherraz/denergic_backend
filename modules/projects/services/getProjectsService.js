@@ -3,11 +3,13 @@ var connectionsPool = require('../../../connectors/connectionsPool');
 var dbConstants = require('../../commons/dbConstant');
 
 function service(data, callback) {
-  connectionsPool.get('persistentDb').insert({
+  connectionsPool.get('persistentDb').find({
     collectionName: dbConstants.collections.denergicProjects,
-    data: data
+    fields: data.fields,
+    sort: data.sort,
+    order: data.order
   }, function (err, result) {
-    callback(err, result? result._id : null)
+    callback(err, result)
   })
 }
 
